@@ -1,7 +1,7 @@
 package com.vincentcodes.tests;
 
+import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -18,11 +18,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+import com.vincentcodes.net.SSLSocketConfigurer;
 import com.vincentcodes.net.SSLUpgrader;
 import com.vincentcodes.net.UpgradableSocket;
 
 @TestInstance(Lifecycle.PER_CLASS)
 public class SSLClientSocketTests {
+
+    static SSLSocketConfigurer sslConfigurer = (params)->{
+        System.out.println("[+] Setting configs");
+        params.setApplicationProtocols(new String[]{"custom"});
+    };
 
     private Thread listenThread;
     private ServerSocket server;
@@ -40,6 +46,7 @@ public class SSLClientSocketTests {
                     Socket conn;
                     while((conn = server.accept()) != null){
                         try(UpgradableSocket client = new UpgradableSocket(conn)){
+                            client.setSSLConfiguerer(sslConfigurer);
                             client.setClientMode(false);
                             client.upgrade();
 
@@ -78,7 +85,20 @@ public class SSLClientSocketTests {
     @Test
     public void clientConnecct() throws InterruptedException{
         try(UpgradableSocket socket = new UpgradableSocket("127.0.0.1", 1234)){
+            socket.upgrade();
             assertTrue(socket.isConnected());
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void successfulConfiguration() throws InterruptedException{
+        try(UpgradableSocket socket = new UpgradableSocket("127.0.0.1", 1234)){
+            socket.setSSLConfiguerer(sslConfigurer);
+            socket.upgrade();
+            assertTrue(socket.isConnected());
+            assertEquals("custom", socket.getApplicationProtocol());
         }catch(IOException e){
             e.printStackTrace();
         }

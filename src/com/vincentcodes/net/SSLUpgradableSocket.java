@@ -18,4 +18,6 @@ public interface SSLUpgradableSocket {
     boolean upgrade() throws IOException;
     
     SSLParameters getSSLParameters();
+
+    String getApplicationProtocol();
 }

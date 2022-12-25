@@ -20,6 +20,8 @@ public class UpgradableSocket implements SSLUpgradableSocket, BasicSocket, Close
     private boolean useClientMode = true;
     private InputStream is;
 
+    private SSLSocketConfigurer sslConfiguerer;
+
     /**
      * @param socket a connected socket
      */
@@ -88,6 +90,10 @@ public class UpgradableSocket implements SSLUpgradableSocket, BasicSocket, Close
         useClientMode = mode;
     }
 
+    public void setSSLConfiguerer(SSLSocketConfigurer sslConfigurer){
+        this.sslConfiguerer = sslConfigurer;
+    }
+
     /**
      * Upgrade the socket.
      * <p>
@@ -107,6 +113,7 @@ public class UpgradableSocket implements SSLUpgradableSocket, BasicSocket, Close
         // otherwise, just pure upgrade the connection
         if(useClientMode){
             SSLSocket sslSocket = upgradeSocket(socket, useClientMode);
+            tryToConfigure(sslSocket);
             sslSocket.startHandshake();
             socket = sslSocket;
             is = socket.getInputStream();
@@ -119,12 +126,20 @@ public class UpgradableSocket implements SSLUpgradableSocket, BasicSocket, Close
         if(TLSHelloSignatureChecker.validateHello(bais)){
             bais.reset(); // reset the peek limit
             SSLSocket sslSocket = upgradeSocket(socket, bais, useClientMode);
+            tryToConfigure(sslSocket);
             sslSocket.startHandshake();
             socket = sslSocket;
             upgraded = true;
         }else bais.reset();
         is = new SequenceInputStream(bais, socket.getInputStream());
         return upgraded;
+    }
+    private void tryToConfigure(SSLSocket sslSocket){
+        if(sslConfiguerer != null){
+            SSLParameters currentParams = sslSocket.getSSLParameters();
+            sslConfiguerer.configure(currentParams);
+            sslSocket.setSSLParameters(currentParams);
+        }
     }
 
     /**
@@ -134,6 +149,16 @@ public class UpgradableSocket implements SSLUpgradableSocket, BasicSocket, Close
     public SSLParameters getSSLParameters() {
         if(socket instanceof SSLSocket)
             return ((SSLSocket)socket).getSSLParameters();
+        return null;
+    }
+
+    /**
+     * Null if this socket is not upgraded
+     */
+    @Override
+    public String getApplicationProtocol(){
+        if(socket instanceof SSLSocket)
+            return ((SSLSocket)socket).getApplicationProtocol();
         return null;
     }
 

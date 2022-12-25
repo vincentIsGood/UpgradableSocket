@@ -17,11 +17,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+import com.vincentcodes.net.SSLSocketConfigurer;
 import com.vincentcodes.net.SSLUpgrader;
 import com.vincentcodes.net.UpgradableSocket;
 
 @TestInstance(Lifecycle.PER_CLASS)
 public class SSLServerSocketTests {
+
+    static SSLSocketConfigurer sslConfigurer = (params)->{
+        System.out.println("[+] Setting configs");
+        params.setApplicationProtocols(new String[]{"custom"});
+    };
 
     @BeforeAll
     public void setup(){
@@ -43,6 +49,19 @@ public class SSLServerSocketTests {
                 client.setClientMode(false);
                 client.upgrade();
                 assertTrue(client.isConnected());
+            }
+        }
+    }
+
+    @Test
+    public void successfulConfiguration() throws InterruptedException, IOException{
+        try(ServerSocket server = new ServerSocket(1234)){
+            try(UpgradableSocket client = new UpgradableSocket(server.accept())){
+                client.setSSLConfiguerer(sslConfigurer);
+                client.setClientMode(false);
+                client.upgrade();
+                assertTrue(client.isConnected());
+                assertEquals("custom", client.getApplicationProtocol());
             }
         }
     }
@@ -94,6 +113,7 @@ public class SSLServerSocketTests {
                 // Can use Conditional Variable for this, but delay is just easier to implement.
                 try { Thread.sleep(100); } catch (InterruptedException e1) {}
                 try(UpgradableSocket socket = new UpgradableSocket("127.0.0.1", 1234)){
+                    socket.setSSLConfiguerer(sslConfigurer);
                     socket.upgrade();
 
                     OutputStream os = socket.getOutputStream();
