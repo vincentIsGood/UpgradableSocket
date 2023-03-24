@@ -16,7 +16,7 @@ public class TestGround {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        // startServer();
+        startServer();
         // startClient();
     }
     public static void startClient() throws IOException, InterruptedException {
@@ -36,6 +36,7 @@ public class TestGround {
             while((conn = server.accept()) != null){
                 try(UpgradableSocket client = new UpgradableSocket(conn)){
                     client.setClientMode(false);
+                    client.setSSLConfiguerer((params)-> params.setApplicationProtocols(new String[]{"http/1.1"}));
                     client.upgrade();
                     
                     InputStream is = client.getInputStream();
