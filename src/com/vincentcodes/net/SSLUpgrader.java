@@ -46,10 +46,10 @@ public class SSLUpgrader {
      */
     public SSLContext createSSLContext(){
         if(sslContext != null) return sslContext;
-        try{
+        try(FileInputStream javaKeystoreStream = new FileInputStream(javaKeyStore)){
             // Java KeyStore
             KeyStore keyStore = getKeyStoreInstance();
-            keyStore.load(new FileInputStream(javaKeyStore), keyStorePass.toCharArray());
+            keyStore.load(javaKeystoreStream, keyStorePass.toCharArray());
 
             // KeyStore trustStore = getKeyStoreInstance();
             // trustStore.load(new FileInputStream("./cacerts"), "changeit".toCharArray());
